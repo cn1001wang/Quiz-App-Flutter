@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
 import 'package:quiz_app/models/Questions.dart';
+import 'package:quiz_app/screens/score/score_screen.dart';
 
 class QuestionController extends GetxController
     with SingleGetTickerProviderMixin {
@@ -11,6 +12,9 @@ class QuestionController extends GetxController
   Animation _animation;
 
   Animation get animation => this._animation;
+
+  PageController _pageController;
+  PageController get pageController => this._pageController;
 
   List<Question> _questions = sample_data
       .map(
@@ -51,9 +55,18 @@ class QuestionController extends GetxController
       });
 
     // start our animation
-    _animationController.forward();
+    _animationController.forward().whenComplete(nextQuestion);
+
+    _pageController = PageController();
 
     super.onInit();
+  }
+
+  @override
+  void onClose() {
+    super.onClose();
+    _animationController.dispose();
+    _pageController.dispose();
   }
 
   void checkAns(Question question, int selectedIndex) {
@@ -65,5 +78,30 @@ class QuestionController extends GetxController
 
     _animationController.stop();
     update();
+
+    Future.delayed(Duration(seconds: 3), () {
+      nextQuestion();
+    });
+  }
+
+  void nextQuestion() {
+    if (_questionNumber.value != _questions.length) {
+      _isAnswered = false;
+      _pageController.nextPage(
+          duration: Duration(milliseconds: 250), curve: Curves.ease);
+
+      // Reset the counter
+      _animationController.reset();
+
+      // then start it again
+      _animationController.forward().whenComplete(nextQuestion);
+    } else {
+      // Get package provide us sumple way to navigate another page
+      Get.to(ScoreScreen());
+    }
+  }
+
+  void updateTheQnNum(int index) {
+    _questionNumber.value = index + 1;
   }
 }
